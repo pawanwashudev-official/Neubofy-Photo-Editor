@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neubofy Image Editor - Pawan Washudev</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script src="https://js.puter.com/v2/"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+        .glass { background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .btn-gradient { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); transition: all 0.3s ease; }
+        .btn-gradient:hover { transform: translateY(-1px); box-shadow: 0 10px 20px -5px rgba(79, 70, 229, 0.4); }
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #4f46e5; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .sidebar-scroll { max-height: calc(100vh - 120px); overflow-y: auto; scrollbar-width: none; }
+        .sidebar-scroll::-webkit-scrollbar { display: none; }
+        input[type="range"] { accent-color: #4f46e5; cursor: pointer; }
+        .drop-active { border: 4px dashed #4f46e5 !important; background: rgba(79, 70, 229, 0.05) !important; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col" id="app-body">
+
+    <header class="sticky top-0 z-50 glass px-6 py-3">
+        <div class="max-w-[1600px] mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <img src="https://i.ibb.co/j95PwLKC/blob.jpg" class="w-10 h-10 rounded-xl shadow-lg object-cover" alt="Logo">
+                <div>
+                    <h1 class="text-lg font-extrabold tracking-tight text-slate-800 leading-none">Neubofy Editor</h1>
+                    <p class="text-[9px] font-bold text-indigo-500 uppercase tracking-widest mt-1">Dev: Pawan Washudev</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="undo()" class="p-2 hover:bg-slate-100 rounded-lg text-slate-400" title="Undo (Ctrl+Z)"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 10h10a8 8 0 018 8v2M3 10l6-6m-6 6l6 6"/></svg></button>
+                <button onclick="redo()" class="p-2 hover:bg-slate-100 rounded-lg text-slate-400" title="Redo (Ctrl+Y)"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10H11a8 8 0 00-8 8v2M21 10l-6-6m6 6l-6 6"/></svg></button>
+                <div class="h-6 w-[1px] bg-slate-200 mx-2"></div>
+                <button onclick="toggleSettings()" class="p-2 hover:bg-slate-100 rounded-lg text-slate-500"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.39a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-[1600px] mx-auto px-6 py-6 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <div class="lg:col-span-3 sidebar-scroll pr-2 space-y-6">
+            <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+                <div class="flex justify-between items-center mb-5">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Visual Studio</h3>
+                    <button onclick="resetVisuals()" class="text-[9px] font-bold text-indigo-600 uppercase bg-indigo-50 px-2 py-1 rounded-lg">Auto Reset</button>
+                </div>
+                <div class="space-y-4">
+                    <div class="space-y-1">
+                        <div class="flex justify-between"><label class="text-[9px] font-bold text-slate-500 uppercase">Brightness</label><span id="val-br" class="text-[10px] font-mono text-indigo-600">100</span></div>
+                        <input type="range" id="br" min="0" max="200" value="100" onchange="pushHistory()" oninput="render()" class="w-full">
+                    </div>
+                    <div class="space-y-1">
+                        <div class="flex justify-between"><label class="text-[9px] font-bold text-slate-500 uppercase">Contrast</label><span id="val-ct" class="text-[10px] font-mono text-indigo-600">100</span></div>
+                        <input type="range" id="ct" min="0" max="200" value="100" onchange="pushHistory()" oninput="render()" class="w-full">
+                    </div>
+                    <div class="space-y-1">
+                        <div class="flex justify-between"><label class="text-[9px] font-bold text-slate-500 uppercase">Saturation</label><span id="val-sa" class="text-[10px] font-mono text-indigo-600">100</span></div>
+                        <input type="range" id="sa" min="0" max="200" value="100" onchange="pushHistory()" oninput="render()" class="w-full">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+                <div class="flex justify-between items-center mb-5">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Dimension Studio</h3>
+                    <button onclick="resetDimensions()" class="text-[9px] font-bold text-indigo-600 uppercase bg-indigo-50 px-2 py-1 rounded-lg">Reset Size</button>
+                </div>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="number" id="in-w" placeholder="Width" oninput="render()" class="p-2.5 bg-slate-50 rounded-xl text-xs font-bold border-none outline-none focus:ring-2 focus:ring-indigo-100">
+                        <input type="number" id="in-h" placeholder="Height" oninput="render()" class="p-2.5 bg-slate-50 rounded-xl text-xs font-bold border-none outline-none focus:ring-2 focus:ring-indigo-100">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="setDim(413, 531)" class="p-2 bg-slate-100 text-slate-600 rounded-lg text-[9px] font-black uppercase hover:bg-indigo-600 hover:text-white transition-all">Passport</button>
+                        <button onclick="setDim(1080, 1080)" class="p-2 bg-slate-100 text-slate-600 rounded-lg text-[9px] font-black uppercase hover:bg-indigo-600 hover:text-white transition-all">Instagram</button>
+                        <button onclick="setDim(1920, 1080)" class="p-2 bg-slate-100 text-slate-600 rounded-lg text-[9px] font-black uppercase hover:bg-indigo-600 hover:text-white transition-all">Youtube</button>
+                        <button onclick="setDim(32, 32)" class="p-2 bg-slate-100 text-slate-600 rounded-lg text-[9px] font-black uppercase hover:bg-indigo-600 hover:text-white transition-all">Favicon</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+                <div class="flex justify-between items-center mb-5">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Crop Studio</h3>
+                    <button onclick="deactivateCrop()" id="crop-reset-btn" class="hidden text-[9px] font-bold text-red-500 uppercase bg-red-50 px-2 py-1 rounded-lg">Cancel</button>
+                </div>
+                <button onclick="activateCrop()" id="activate-crop-btn" class="w-full py-3 bg-indigo-600 text-white rounded-2xl font-bold text-[10px] uppercase shadow-lg shadow-indigo-100">Activate Mouse Crop</button>
+                <div id="crop-controls" class="hidden mt-4 grid grid-cols-2 gap-2">
+                    <button onclick="setCropRatio(1)" class="p-2 bg-slate-50 border rounded-lg text-[9px] font-black">1:1 Square</button>
+                    <button onclick="setCropRatio(NaN)" class="p-2 bg-slate-50 border rounded-lg text-[9px] font-black">Free Crop</button>
+                    <button onclick="applyCrop()" class="col-span-2 py-2 bg-green-600 text-white rounded-lg text-[10px] font-black uppercase mt-2">Confirm & Clip</button>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Base64 Output</h3>
+                <textarea id="b64Out" readonly class="w-full h-32 p-3 bg-slate-50 border-none rounded-2xl text-[10px] font-mono resize-none focus:ring-0 outline-none shadow-inner" placeholder="Image string..."></textarea>
+                <button onclick="copy('b64Out')" class="w-full py-2.5 text-[10px] font-black uppercase text-indigo-600 bg-indigo-50 rounded-xl mt-2">Copy Data Hub</button>
+            </div>
+        </div>
+
+        <div class="lg:col-span-6 flex flex-col space-y-4">
+            <div id="dropzone" class="bg-white rounded-[2.5rem] border-2 border-dashed border-slate-200 flex-1 flex flex-col items-center justify-center p-6 relative overflow-hidden min-h-[580px] transition-all duration-300">
+                <input type="file" id="fileIn" class="hidden" accept="image/*">
+                <div id="placeholder" class="text-center cursor-pointer group" onclick="document.getElementById('fileIn').click()">
+                    <div class="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform shadow-xl">
+                        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2l1.586-1.586a2 2 0 0 1 2.828 0L20 14m-6-6h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z"/></svg>
+                    </div>
+                    <p class="font-extrabold text-slate-800 text-lg uppercase tracking-tighter">Universal Workspace</p>
+                    <p class="text-[10px] text-slate-400 mt-2 uppercase font-black tracking-widest">Drop, Paste URL, or CTRL+V</p>
+                </div>
+                <div id="canvas-wrapper" class="hidden relative w-full h-full flex items-center justify-center">
+                    <img id="main-view" class="max-w-full max-h-[600px] rounded-2xl shadow-2xl transition-all">
+                </div>
+                <div id="action-float" class="hidden absolute top-6 right-6 flex flex-col space-y-2 z-40">
+                    <button onclick="removeImage()" class="p-3 bg-red-500 text-white rounded-2xl shadow-xl hover:scale-110 transition-transform"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+                    <button onclick="bgRemove()" class="p-3 bg-white text-indigo-600 rounded-2xl shadow-xl hover:scale-110 transition-transform"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></button>
+                </div>
+                <div id="loader" class="hidden absolute inset-0 bg-white/95 backdrop-blur-md flex items-center justify-center z-50">
+                    <div class="flex flex-col items-center">
+                        <div class="loader mb-4"></div>
+                        <p id="loader-txt" class="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Synchronizing Studio...</p>
+                    </div>
+                </div>
+            </div>
+            <div id="target-bar" class="hidden bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div class="flex-1 space-y-2">
+                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Serious KB Match Engine</label>
+                    <div class="flex items-center space-x-3">
+                        <input type="number" id="targetKb" placeholder="Enter Target KB" class="flex-1 p-2.5 bg-slate-50 rounded-xl text-xs font-bold border-none outline-none focus:ring-2 focus:ring-indigo-300">
+                        <button onclick="matchExactSize()" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase btn-gradient">Calibrate Size</button>
+                    </div>
+                </div>
+                <div class="text-right border-l pl-6 border-slate-100 ml-6">
+                    <p class="text-[9px] text-slate-400 font-black uppercase">Final Weight</p>
+                    <p id="size-out" class="text-2xl font-black text-indigo-600">0 KB</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-3 space-y-6">
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm sticky top-24">
+                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Export Hub</h3>
+                <div class="space-y-4">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Master Format</label>
+                        <select id="fmt" onchange="render()" class="w-full p-3 bg-slate-50 border rounded-xl text-xs font-bold outline-none">
+                            <option value="image/jpeg">JPG (Standard)</option>
+                            <option value="image/png">PNG (Lossless)</option>
+                            <option value="image/webp">WEBP (Web Pro)</option>
+                            <option value="image/x-icon">ICO (Icon/Favicon)</option>
+                            <option value="image/bmp">BMP (Raw)</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Studio Quality: <span id="q-label">85%</span></label>
+                        <input type="range" id="qRan" min="1" max="100" value="85" oninput="render()" class="w-full">
+                    </div>
+                    <button onclick="download()" class="w-full py-4 btn-gradient text-white rounded-2xl font-bold shadow-lg flex items-center justify-center">Download Master File</button>
+                    <div class="grid grid-cols-2 gap-2 border-t pt-4 border-slate-100">
+                        <button onclick="cloudHost('imgbb')" class="p-3 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase hover:bg-black">Host ImgBB</button>
+                        <button onclick="cloudHost('cloudinary')" class="p-3 bg-blue-600 text-white rounded-xl text-[9px] font-black uppercase hover:bg-blue-700">Cloudinary</button>
+                    </div>
+                </div>
+                <div id="host-results" class="hidden mt-6 space-y-4 border-t pt-4 animate-fade-in">
+                    <div>
+                        <label class="text-[8px] font-black text-slate-400 uppercase">Direct Link</label>
+                        <div class="flex mt-1"><input id="res-url" readonly class="w-full bg-slate-50 p-2 text-[9px] font-mono rounded-l-lg outline-none border border-r-0"><button onclick="copy('res-url')" class="bg-indigo-50 text-indigo-600 px-3 rounded-r-lg text-[8px] font-bold border">COPY</button></div>
+                    </div>
+                    <div>
+                        <label class="text-[8px] font-black text-slate-400 uppercase">Markdown</label>
+                        <div class="flex mt-1"><input id="res-md" readonly class="w-full bg-slate-50 p-2 text-[9px] font-mono rounded-l-lg outline-none border border-r-0"><button onclick="copy('res-md')" class="bg-indigo-50 text-indigo-600 px-3 rounded-r-lg text-[8px] font-bold border">COPY</button></div>
+                    </div>
+                    <div>
+                        <label class="text-[8px] font-black text-slate-400 uppercase">BBCode</label>
+                        <div class="flex mt-1"><input id="res-bb" readonly class="w-full bg-slate-50 p-2 text-[9px] font-mono rounded-l-lg outline-none border border-r-0"><button onclick="copy('res-bb')" class="bg-indigo-50 text-indigo-600 px-3 rounded-r-lg text-[8px] font-bold border">COPY</button></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 py-10 px-6 mt-auto">
+        <div class="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center text-slate-400">
+            <div>
+                <h4 class="text-sm font-black text-slate-800 uppercase tracking-tighter">Neubofy Image Editor</h4>
+                <p class="text-[10px] font-bold mt-1 uppercase tracking-widest">Master Studio Pro v5.1</p>
+            </div>
+            <div class="flex flex-col items-center">
+                <p class="text-[9px] font-black uppercase tracking-[0.3em]">Built for Pawan Washudev by</p>
+                <p class="text-sm font-extrabold text-slate-800">Neubofy AI Core</p>
+            </div>
+            <p class="text-[10px] font-bold uppercase tracking-widest">&copy; 2025 Pawan Washudev. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <div id="setModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-[2.5rem] p-10 shadow-2xl">
+            <h2 class="text-2xl font-black mb-8 text-slate-800">Cloud Settings</h2>
+            <div class="space-y-6">
+                <input type="password" id="cfg-imgbb" placeholder="ImgBB API Key" class="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="text" id="cfg-cloud" placeholder="Cloud Name" class="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm outline-none">
+                    <input type="text" id="cfg-preset" placeholder="Upload Preset" class="w-full p-4 bg-slate-50 border-none rounded-2xl text-sm outline-none">
+                </div>
+                <button onclick="saveKeys()" class="w-full py-4 btn-gradient text-white rounded-2xl font-bold shadow-xl">Secure Storage</button>
+                <button onclick="toggleSettings()" class="w-full text-[10px] font-black uppercase text-slate-400 mt-2">Dismiss</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let mainImg = new Image();
+        let history = [], hStep = -1;
+        let cropper = null;
+        let activeObj = null;
+
+        window.onload = () => {
+            document.getElementById('cfg-imgbb').value = localStorage.getItem('nb_imgbb') || '';
+            document.getElementById('cfg-cloud').value = localStorage.getItem('nb_cloud') || '';
+            document.getElementById('cfg-preset').value = localStorage.getItem('nb_preset') || '';
+        };
+
+        // --- Core Source Logic ---
+        document.getElementById('fileIn').onchange = (e) => load(e.target.files[0]);
+        document.addEventListener('paste', (e) => {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (const item of items) {
+                if (item.type.includes('image')) load(item.getAsFile());
+                else if (item.type === 'text/plain') item.getAsString(s => { if(s.includes('http') || s.includes('data:image')) load(s); });
+            }
+        });
+
+        const bd = document.getElementById('app-body');
+        const dz = document.getElementById('dropzone');
+        ['dragenter', 'dragover'].forEach(e => bd.addEventListener(e, (ev) => { ev.preventDefault(); dz.classList.add('drop-active'); }));
+        ['dragleave', 'drop'].forEach(e => bd.addEventListener(e, (ev) => { ev.preventDefault(); dz.classList.remove('drop-active'); }));
+        bd.addEventListener('drop', (e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if(f) load(f); });
+
+        function load(src) {
+            document.getElementById('loader').classList.remove('hidden');
+            if (typeof src === 'string') { mainImg.crossOrigin = "anonymous"; mainImg.src = src; } 
+            else { const r = new FileReader(); r.onload = (e) => { mainImg.src = e.target.result; }; r.readAsDataURL(src); }
+            mainImg.onload = () => {
+                document.getElementById('placeholder').classList.add('hidden');
+                document.getElementById('canvas-wrapper').classList.remove('hidden');
+                document.getElementById('action-float').classList.remove('hidden');
+                document.getElementById('target-bar').classList.remove('hidden');
+                resetDimensions();
+                pushHistory(); render();
+                document.getElementById('loader').classList.add('hidden');
+            };
+        }
+
+        function removeImage() {
+            if(!confirm("Wipe workspace?")) return;
+            document.getElementById('placeholder').classList.remove('hidden');
+            document.getElementById('canvas-wrapper').classList.add('hidden');
+            document.getElementById('action-float').classList.add('hidden');
+            document.getElementById('target-bar').classList.add('hidden');
+            document.getElementById('host-results').classList.add('hidden');
+            document.getElementById('fileIn').value = "";
+            if(cropper) deactivateCrop();
+            mainImg = new Image(); history = []; hStep = -1;
+            if(activeObj) URL.revokeObjectURL(activeObj);
+        }
+
+        // --- ICO Creation Helper ---
+        async function toIcoBlob(canvas) {
+            return new Promise(resolve => {
+                canvas.toBlob(async (pngBlob) => {
+                    const pngBuffer = await pngBlob.arrayBuffer();
+                    const icoHeader = new ArrayBuffer(22);
+                    const view = new DataView(icoHeader);
+                    
+                    // ICONDIR Header
+                    view.setUint16(0, 0, true);   // Reserved
+                    view.setUint16(2, 1, true);   // Type 1 (Icon)
+                    view.setUint16(4, 1, true);   // Count (1 image)
+                    
+                    // ICONDIRENTRY
+                    view.setUint8(6, canvas.width > 255 ? 0 : canvas.width);   // Width
+                    view.setUint8(7, canvas.height > 255 ? 0 : canvas.height); // Height
+                    view.setUint8(8, 0);          // Colors
+                    view.setUint8(9, 0);          // Reserved
+                    view.setUint16(10, 1, true);  // Planes
+                    view.setUint16(12, 32, true); // BPP
+                    view.setUint32(14, pngBlob.size, true); // Image Size
+                    view.setUint32(18, 22, true); // Image Offset (6 + 16)
+
+                    resolve(new Blob([icoHeader, pngBuffer], { type: 'image/x-icon' }));
+                }, 'image/png');
+            });
+        }
+
+        // --- Render Engine ---
+        async function render(qCustom = null) {
+            if (!mainImg.src || cropper) return;
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            let fmt = document.getElementById('fmt').value;
+            const q = qCustom !== null ? qCustom : (document.getElementById('qRan').value / 100);
+
+            ['br','ct','sa'].forEach(id => document.getElementById('val-'+id).innerText = document.getElementById(id).value);
+            document.getElementById('q-label').innerText = Math.round(q * 100) + '%';
+
+            const w = parseInt(document.getElementById('in-w').value) || mainImg.width;
+            const h = parseInt(document.getElementById('in-h').value) || mainImg.height;
+
+            canvas.width = w; canvas.height = h;
+            ctx.filter = `brightness(${document.getElementById('br').value}%) contrast(${document.getElementById('ct').value}%) saturate(${document.getElementById('sa').value}%)`;
+            ctx.drawImage(mainImg, 0, 0, w, h);
+
+            let blob;
+            if (fmt === 'image/x-icon') {
+                blob = await toIcoBlob(canvas);
+            } else {
+                blob = await new Promise(res => {
+                    canvas.toBlob(b => res(b || canvas.toBlob(x => res(x), 'image/png', 1.0)), fmt, q);
+                });
+            }
+
+            if(activeObj) URL.revokeObjectURL(activeObj);
+            activeObj = URL.createObjectURL(blob);
+            document.getElementById('main-view').src = activeObj;
+            document.getElementById('size-out').innerText = formatSize(blob.size);
+            const reader = new FileReader();
+            reader.onload = () => document.getElementById('b64Out').value = reader.result;
+            reader.readAsDataURL(blob);
+            return blob;
+        }
+
+        async function matchExactSize() {
+            const t = parseFloat(document.getElementById('targetKb').value);
+            if (!t) return;
+            document.getElementById('loader').classList.remove('hidden');
+            let min = 0.01, max = 1.0, best = 0.5;
+            for (let i = 0; i < 15; i++) {
+                best = (min + max) / 2;
+                const b = await render(best);
+                if (b.size / 1024 > t) max = best; else min = best;
+            }
+            document.getElementById('qRan').value = Math.round(best * 100);
+            document.getElementById('loader').classList.add('hidden');
+        }
+
+        function activateCrop() {
+            if(!mainImg.src) return;
+            document.getElementById('activate-crop-btn').classList.add('hidden');
+            document.getElementById('crop-controls').classList.remove('hidden');
+            document.getElementById('crop-reset-btn').classList.remove('hidden');
+            cropper = new Cropper(document.getElementById('main-view'), { viewMode: 1, movable: true, zoomable: true });
+        }
+
+        function setCropRatio(r) { cropper.setAspectRatio(r); }
+
+        function applyCrop() {
+            const canvas = cropper.getCroppedCanvas();
+            mainImg.src = canvas.toDataURL();
+            deactivateCrop();
+            mainImg.onload = () => { resetDimensions(); render(); pushHistory(); };
+        }
+
+        function deactivateCrop() {
+            if(cropper) cropper.destroy();
+            cropper = null;
+            document.getElementById('activate-crop-btn').classList.remove('hidden');
+            document.getElementById('crop-controls').classList.add('hidden');
+            document.getElementById('crop-reset-btn').classList.add('hidden');
+            render();
+        }
+
+        function resetVisuals() { ['br','ct','sa'].forEach(id => document.getElementById(id).value = 100); render(); }
+        function resetDimensions() { document.getElementById('in-w').value = mainImg.width; document.getElementById('in-h').value = mainImg.height; render(); }
+        function setDim(w, h) { document.getElementById('in-w').value = w; document.getElementById('in-h').value = h; render(); pushHistory(); }
+
+        async function bgRemove() {
+            const l = document.getElementById('loader'); l.classList.remove('hidden');
+            const seg = new SelfieSegmentation({locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${f}`});
+            seg.setOptions({ modelSelection: 1 });
+            seg.onResults((r) => {
+                const c = document.createElement('canvas'); const x = c.getContext('2d');
+                c.width = r.image.width; c.height = r.image.height;
+                x.clearRect(0,0,c.width,c.height);
+                x.drawImage(r.segmentationMask,0,0,c.width,c.height);
+                x.globalCompositeOperation='source-in';
+                x.drawImage(r.image,0,0,c.width,c.height);
+                mainImg.src = c.toDataURL(); l.classList.add('hidden');
+            });
+            await seg.send({image: document.getElementById('main-view')});
+        }
+
+        async function cloudHost(p) {
+            document.getElementById('loader').classList.remove('hidden');
+            try {
+                const blob = await render();
+                const fd = new FormData();
+                let res, data, url = '';
+                if (p === 'imgbb') {
+                    const k = localStorage.getItem('nb_imgbb')?.trim(); if(!k) throw "Missing Key";
+                    fd.append('image', blob); fd.append('key', k);
+                    res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: fd });
+                } else {
+                    const n = localStorage.getItem('nb_cloud')?.trim();
+                    const pr = localStorage.getItem('nb_preset')?.trim();
+                    if(!n || !pr) throw "Check Credentials";
+                    fd.append('file', blob); fd.append('upload_preset', pr);
+                    res = await fetch(`https://api.cloudinary.com/v1_1/${n}/image/upload`, { method: 'POST', body: fd });
+                }
+                data = await res.json();
+                url = data.data?.url || data.secure_url;
+                if (!url) throw "Upload Error";
+                document.getElementById('res-url').value = url;
+                document.getElementById('res-md').value = `![Neubofy](${url})`;
+                document.getElementById('res-bb').value = `[img]${url}[/img]`;
+                document.getElementById('host-results').classList.remove('hidden');
+            } catch(e) { alert(e); } finally { document.getElementById('loader').classList.add('hidden'); }
+        }
+
+        function pushHistory() {
+            const s = { br: document.getElementById('br').value, ct: document.getElementById('ct').value, sa: document.getElementById('sa').value, w: document.getElementById('in-w').value, h: document.getElementById('in-h').value, src: mainImg.src };
+            history = history.slice(0, hStep + 1); history.push(JSON.stringify(s)); hStep++;
+        }
+        function undo() { if (hStep > 0) apply(JSON.parse(history[--hStep])); }
+        function redo() { if (hStep < history.length - 1) apply(JSON.parse(history[++hStep])); }
+        function apply(s) { document.getElementById('br').value = s.br; document.getElementById('ct').value = s.ct; document.getElementById('sa').value = s.sa; document.getElementById('in-w').value = s.w; document.getElementById('in-h').value = s.h; mainImg.src = s.src; render(); }
+        
+        function download() {
+            const mime = document.getElementById('fmt').value;
+            const extensions = {
+                'image/jpeg': 'jpg',
+                'image/png': 'png',
+                'image/webp': 'webp',
+                'image/bmp': 'bmp',
+                'image/x-icon': 'ico'
+            };
+            const ext = extensions[mime] || 'png';
+            const a = document.createElement('a');
+            a.href = document.getElementById('main-view').src;
+            a.download = `neubofy_${Date.now()}.${ext}`;
+            a.click();
+        }
+        
+        function formatSize(b) { if(b===0) return '0 B'; const k=1024, i=Math.floor(Math.log(b)/Math.log(k)); return (b/Math.pow(k,i)).toFixed(2) + ' ' + ['B','KB','MB'][i]; }
+        function copy(id) { document.getElementById(id).select(); document.execCommand('copy'); alert("Copied!"); }
+        function toggleSettings() { document.getElementById('setModal').classList.toggle('hidden'); }
+        function saveKeys() { localStorage.setItem('nb_imgbb', document.getElementById('cfg-imgbb').value); localStorage.setItem('nb_cloud', document.getElementById('cfg-cloud').value); localStorage.setItem('nb_preset', document.getElementById('cfg-preset').value); toggleSettings(); }
+    </script>
+</body>
+</html>
