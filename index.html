@@ -119,6 +119,36 @@
                         <div class="flex justify-between text-[9px] font-black uppercase"><span>Saturation</span><span id="val-sa">100</span></div>
                         <input type="range" id="sa" min="0" max="200" value="100" onchange="pushHistory()" oninput="render()">
                     </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-[9px] font-black uppercase"><span>Blur</span><span id="val-bl">0</span></div>
+                        <input type="range" id="bl" min="0" max="20" value="0" onchange="pushHistory()" oninput="render()">
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-[9px] font-black uppercase"><span>Hue</span><span id="val-hu">0</span></div>
+                        <input type="range" id="hu" min="0" max="360" value="0" onchange="pushHistory()" oninput="render()">
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-[9px] font-black uppercase"><span>Sepia</span><span id="val-se">0</span></div>
+                        <input type="range" id="se" min="0" max="100" value="0" onchange="pushHistory()" oninput="render()">
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-[9px] font-black uppercase"><span>Invert</span><span id="val-in">0</span></div>
+                        <input type="range" id="in" min="0" max="100" value="0" onchange="pushHistory()" oninput="render()">
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card p-5">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-[9px] font-black text-yellow-800 uppercase tracking-[0.2em]">Background Color</h3>
+                    <button onclick="resetBgColor()" class="text-[8px] font-black text-ruby-600 bg-ruby-50 px-2 py-1 rounded">CLEAR</button>
+                </div>
+                <div class="space-y-2">
+                    <input type="color" id="bg-color" value="#ffffff" onchange="pushHistory()" oninput="render()" class="w-full h-8 rounded cursor-pointer border-0 p-0">
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="use-bg-color" onchange="pushHistory(); render();" class="accent-yellow-600">
+                        <label for="use-bg-color" class="text-[9px] font-black uppercase">Apply Background Color</label>
+                    </div>
                 </div>
             </div>
 
@@ -140,13 +170,21 @@
                     <h3 class="text-[9px] font-black text-yellow-800 uppercase tracking-[0.2em]">Dimensions</h3>
                     <button onclick="resetDimensions()" class="text-[8px] font-black text-ruby-600 bg-ruby-50 px-2 py-1 rounded">RE-SYNC</button>
                 </div>
-                <div class="grid grid-cols-2 gap-2 mb-3">
-                    <input type="number" id="in-w" placeholder="W" oninput="render()" class="p-3 bg-gray-50 rounded-xl text-xs font-bold outline-none border focus:border-yellow-500 transition-all">
-                    <input type="number" id="in-h" placeholder="H" oninput="render()" class="p-3 bg-gray-50 rounded-xl text-xs font-bold outline-none border focus:border-yellow-500 transition-all">
+                <div class="flex items-center gap-2 mb-3">
+                    <input type="checkbox" id="lock-aspect" checked class="accent-yellow-600">
+                    <label for="lock-aspect" class="text-[9px] font-black uppercase">Lock Aspect Ratio</label>
                 </div>
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-2 gap-2 mb-3">
+                    <input type="number" id="in-w" placeholder="W" oninput="handleDimensionChange('w')" class="p-3 bg-gray-50 rounded-xl text-xs font-bold outline-none border focus:border-yellow-500 transition-all">
+                    <input type="number" id="in-h" placeholder="H" oninput="handleDimensionChange('h')" class="p-3 bg-gray-50 rounded-xl text-xs font-bold outline-none border focus:border-yellow-500 transition-all">
+                </div>
+                <div class="grid grid-cols-2 gap-2 mb-2">
                     <button onclick="setDim(413, 531)" class="py-2 bg-white border text-[8px] font-black rounded-lg hover:bg-black hover:text-white transition-all">PASSPORT</button>
                     <button onclick="setDim(1080, 1080)" class="py-2 bg-white border text-[8px] font-black rounded-lg hover:bg-black hover:text-white transition-all">INSTA</button>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="setDim(1280, 720)" class="py-2 bg-white border text-[8px] font-black rounded-lg hover:bg-black hover:text-white transition-all">HD (720p)</button>
+                    <button onclick="setDim(1920, 1080)" class="py-2 bg-white border text-[8px] font-black rounded-lg hover:bg-black hover:text-white transition-all">FHD (1080p)</button>
                 </div>
             </div>
         </div>
@@ -336,7 +374,7 @@
             const fmt = document.getElementById('fmt').value;
             const q = qCustom !== null ? qCustom : (document.getElementById('qRan').value / 100);
 
-            ['br','ct','sa'].forEach(id => {
+            ['br','ct','sa','bl','hu','se','in'].forEach(id => {
                 const val = document.getElementById(id).value;
                 document.getElementById('val-'+id).innerText = val;
             });
@@ -346,7 +384,13 @@
             const h = parseInt(document.getElementById('in-h').value) || mainImg.height;
 
             canvas.width = w; canvas.height = h;
-            ctx.filter = `brightness(${document.getElementById('br').value}%) contrast(${document.getElementById('ct').value}%) saturate(${document.getElementById('sa').value}%)`;
+
+            if (document.getElementById('use-bg-color').checked) {
+                ctx.fillStyle = document.getElementById('bg-color').value;
+                ctx.fillRect(0, 0, w, h);
+            }
+
+            ctx.filter = `brightness(${document.getElementById('br').value}%) contrast(${document.getElementById('ct').value}%) saturate(${document.getElementById('sa').value}%) blur(${document.getElementById('bl').value}px) hue-rotate(${document.getElementById('hu').value}deg) sepia(${document.getElementById('se').value}%) invert(${document.getElementById('in').value}%)`;
             ctx.drawImage(mainImg, 0, 0, w, h);
 
             let blob = await new Promise(res => canvas.toBlob(b => res(b), (fmt === 'image/x-icon' ? 'image/png' : fmt), q));
@@ -363,12 +407,36 @@
         // --- STUDIO RESETS ---
         function resetVisuals() { 
             ['br','ct','sa'].forEach(id => document.getElementById(id).value = 100); 
+            ['bl','hu','se','in'].forEach(id => document.getElementById(id).value = 0);
             render(); notify("Visuals Standardized");
+        }
+        function resetBgColor() {
+            document.getElementById('use-bg-color').checked = false;
+            document.getElementById('bg-color').value = '#ffffff';
+            render(); pushHistory(); notify("Background Color Reset");
         }
         function resetDimensions() { 
             document.getElementById('in-w').value = mainImg.width; 
             document.getElementById('in-h').value = mainImg.height; 
+            if(mainImg.width && mainImg.height) {
+                window.imgAspectRatio = mainImg.width / mainImg.height;
+            }
             render(); notify("Native Dimensions Restored");
+        }
+        function handleDimensionChange(type) {
+            const wInput = document.getElementById('in-w');
+            const hInput = document.getElementById('in-h');
+            const w = parseInt(wInput.value);
+            const h = parseInt(hInput.value);
+
+            if (document.getElementById('lock-aspect').checked && window.imgAspectRatio) {
+                if (type === 'w' && w) {
+                    hInput.value = Math.round(w / window.imgAspectRatio);
+                } else if (type === 'h' && h) {
+                    wInput.value = Math.round(h * window.imgAspectRatio);
+                }
+            }
+            render();
         }
         function resetTransform() { 
             const c = document.createElement('canvas'); const x = c.getContext('2d');
@@ -401,7 +469,12 @@
 
         // --- HISTORY ENGINE ---
         function pushHistory() {
-            const s = { br: document.getElementById('br').value, ct: document.getElementById('ct').value, sa: document.getElementById('sa').value, w: document.getElementById('in-w').value, h: document.getElementById('in-h').value, src: mainImg.src };
+            const s = {
+                br: document.getElementById('br').value, ct: document.getElementById('ct').value, sa: document.getElementById('sa').value,
+                bl: document.getElementById('bl').value, hu: document.getElementById('hu').value, se: document.getElementById('se').value, in: document.getElementById('in').value,
+                w: document.getElementById('in-w').value, h: document.getElementById('in-h').value, src: mainImg.src,
+                bgColor: document.getElementById('bg-color').value, useBgColor: document.getElementById('use-bg-color').checked
+            };
             history = history.slice(0, hStep + 1); history.push(JSON.stringify(s)); hStep++;
             updateHistoryUI();
         }
@@ -409,6 +482,13 @@
         function redo() { if (hStep < history.length - 1) applyH(JSON.parse(history[++hStep])); }
         function applyH(s) { 
             document.getElementById('br').value = s.br; document.getElementById('ct').value = s.ct; document.getElementById('sa').value = s.sa;
+            if(s.bl !== undefined) document.getElementById('bl').value = s.bl;
+            if(s.hu !== undefined) document.getElementById('hu').value = s.hu;
+            if(s.se !== undefined) document.getElementById('se').value = s.se;
+            if(s.in !== undefined) document.getElementById('in').value = s.in;
+            if(s.bgColor !== undefined) document.getElementById('bg-color').value = s.bgColor;
+            if(s.useBgColor !== undefined) document.getElementById('use-bg-color').checked = s.useBgColor;
+
             document.getElementById('in-w').value = s.w; document.getElementById('in-h').value = s.h; mainImg.src = s.src; 
             render(); updateHistoryUI(); notify("Timeline Adjusted");
         }
@@ -492,7 +572,11 @@
                 document.getElementById('res-url').value = url; document.getElementById('host-results').classList.remove('hidden'); notify("Cloud Sync Verified");
             } catch(e) { notify(e); } finally { document.getElementById('loader').classList.add('hidden'); }
         }
-        function setDim(w, h) { document.getElementById('in-w').value = w; document.getElementById('in-h').value = h; render(); pushHistory(); }
+        function setDim(w, h) {
+            document.getElementById('in-w').value = w; document.getElementById('in-h').value = h;
+            // When setting explicitly, we might temporarily disable lock aspect ratio handling
+            render(); pushHistory();
+        }
         function formatSize(b) { if(b===0) return '0 B'; const k=1024, i=Math.floor(Math.log(b)/Math.log(k)); return (b/Math.pow(k,i)).toFixed(1) + ' ' + ['B','KB','MB'][i]; }
         function copy(id) { document.getElementById(id).select(); document.execCommand('copy'); notify("Copied to Hub"); }
         function copyBase64() { if(!currentBase64) return; navigator.clipboard.writeText(currentBase64).then(() => notify("Base64 Copied")); }
